@@ -12,7 +12,7 @@ import com.example.test.Constants
 import com.example.test.Constants.retrofit
 import com.example.test.R
 import com.example.test.models.Login_body
-import com.example.test.models.login
+import com.example.test.models.login_response
 import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -29,6 +29,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+
 
         var User_name: String
         var Password: String
@@ -48,16 +50,16 @@ class MainActivity : AppCompatActivity() {
 
         val service: LoginInterface = retrofit.create<LoginInterface>(LoginInterface::class.java)
 
-        val listCall: Call<login> = service.LoginCheck(l)
+        val listCall: Call<login_response> = service.LoginCheck(l)
 
 
-        listCall.enqueue(object : Callback<login> {
-            override fun onResponse(call: Call<login>, response: Response<login>) {
+        listCall.enqueue(object : Callback<login_response> {
+            override fun onResponse(call: Call<login_response>, response: Response<login_response>) {
 
                 // Check weather the response is success or not.
                 if (response.isSuccessful) {
                     /** The de-serialized response body of a successful response. */
-                    val response_login: login? = response.body()
+                    val response_login: login_response? = response.body()
                     Log.i("Response Result", "$response_login")
                     Constants.UserId = response_login!!.Result.userId
                     Constants.AccessToken = "Bearer "+response_login!!.Result.token.access
@@ -74,7 +76,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            override fun onFailure(call: Call<login>, t: Throwable) {
+            override fun onFailure(call: Call<login_response>, t: Throwable) {
 
                 dismisspd()
                 Log.i("response", "failed ")

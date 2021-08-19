@@ -1,8 +1,7 @@
 package com.example.test.ApiInterfaces
 
-import com.example.test.models.DiscussionWallNewPostsResponse
-import com.example.test.models.DiscussionWallPosts
-import com.example.test.models.post_create
+import com.example.test.models.post.DiscussionWallNewPostsResponse
+import com.example.test.models.post.post_create
 import retrofit2.Call
 import retrofit2.http.*
 

@@ -1,4 +1,7 @@
-package com.example.test.models
+package com.example.test.models.post
+
+import android.media.Image
+import java.io.Serializable
 
 data class post_data (
     var postId:Int,
@@ -16,5 +19,5 @@ data class post_data (
     var upvoted:Boolean,
     var reportCount:Int,
     var reported:Boolean
-        )
+        ):Serializable
 

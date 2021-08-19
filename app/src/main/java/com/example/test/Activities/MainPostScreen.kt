@@ -10,31 +10,33 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.test.Adapters.PostsAdapter
 import com.example.test.ApiInterfaces.GetPostListInterface
-import com.example.test.ApiInterfaces.LoginInterface
 import com.example.test.ApiInterfaces.PostNewQuesInterface
 import com.example.test.Constants
 import com.example.test.R
 import com.example.test.models.*
+import com.example.test.models.post.DiscussionWallNewPostsResponse
+import com.example.test.models.post.post_create
+import com.example.test.models.post.post_data
 import kotlinx.android.synthetic.main.activity_main_post_screen.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.IOException
 
 class MainPostScreen : AppCompatActivity() {
 
     var pd: Dialog? = null
-
-    private var saveImageToInternalStorage: Uri? = null
-    var QuestionImage:String?=null
-
+    private var quesImageUri :Uri?=null
+    companion object{
+        const val READ_STORAGE_CODE=1
+        const val PICK_IMAGE_CODE=2
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main_post_screen)
@@ -48,17 +50,49 @@ class MainPostScreen : AppCompatActivity() {
         toolbar_post_page.setNavigationOnClickListener {
             onBackPressed()
         }
+
+        if(intent.hasExtra("extra")){
+            if(intent.getIntExtra("extra",-1)==0){
+                Toast.makeText(this,"Deleted Successsfully",Toast.LENGTH_SHORT).show()}
+            else if(intent.getIntExtra("extra",-1)==1){
+                Toast.makeText(this,"Updated Successsfully",Toast.LENGTH_SHORT).show()
+            }
+        }
+
         showpd()
         getPosts()
-
+        btn_AddImage_newPost.setOnClickListener {
+            if(ContextCompat.checkSelfPermission(this,Manifest.permission.READ_EXTERNAL_STORAGE)==PackageManager.PERMISSION_GRANTED){
+                showImageChooser()
+            }else{
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                    READ_STORAGE_CODE)
+            }
+        }
+        btn_Submit_newPost.setOnClickListener {
+            send(post_create(et_newquestion.text.toString(),quesImageUri,et_newquestion_subjectid.text.toString().toInt()))
+        }
     }
-
-
-
-    /**
-     * A method is used  asking the permission for camera and storage and image capturing and selection from Camera.
-     */
-
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray){
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if(requestCode== READ_STORAGE_CODE){
+            if(grantResults.isNotEmpty()&&grantResults[0]==PackageManager.PERMISSION_GRANTED){
+                showImageChooser()
+            }
+        }
+    }
+    private fun showImageChooser() {
+        var galleryIntent=Intent(Intent.ACTION_PICK,MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        startActivityForResult(galleryIntent, PICK_IMAGE_CODE)
+    }
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(resultCode==Activity.RESULT_OK && requestCode== PICK_IMAGE_CODE && data!!.data !=null){
+            quesImageUri=data.data
+            iv_newQuestion.visibility=View.VISIBLE
+            iv_newQuestion.setImageURI(quesImageUri)
+        }
+    }
     private fun send(postCreate: post_create) {
         val service: PostNewQuesInterface = Constants.retrofit.create<PostNewQuesInterface>(PostNewQuesInterface::class.java)
         val listCall: Call<DiscussionWallNewPostsResponse> = service.postques(Constants.AccessToken,postCreate,Constants.UserId)
@@ -72,6 +106,8 @@ class MainPostScreen : AppCompatActivity() {
                     /** The de-serialized response body of a successful response. */
                     val response_posts: DiscussionWallNewPostsResponse? = response.body()
                     Log.i("Response Result", "$response_posts")
+                    Toast.makeText(this@MainPostScreen,"Successfully created new post",Toast.LENGTH_SHORT).show()
+                    getPosts()
 
                 } else {
                     dismisspd()
@@ -80,6 +116,7 @@ class MainPostScreen : AppCompatActivity() {
                         " Unsuccesful in adding post + ${response.message()} ",
                         Toast.LENGTH_SHORT
                     ).show()
+                    getPosts()
                 }
             }
 
@@ -90,9 +127,9 @@ class MainPostScreen : AppCompatActivity() {
 
             }
         })
+        resetview()
     }
-
-    fun getPosts(){
+    public fun getPosts(){
             val service: GetPostListInterface = Constants.retrofit.create<GetPostListInterface>(GetPostListInterface::class.java)
             val listCall: Call<DiscussionWallPosts> = service.postList(Constants.AccessToken,Constants.UserId)
 
@@ -120,12 +157,11 @@ class MainPostScreen : AppCompatActivity() {
                 override fun onFailure(call: Call<DiscussionWallPosts>, t: Throwable) {
 
                     dismisspd()
-                    Log.i("response", "failed ")
+                    Log.i("response", "failed + ${t.message}")
 
                 }
             })
         }
-
     private fun displayPosts(data: List<post_data>) {
 
         rv_post_list.layoutManager = LinearLayoutManager(this)
@@ -133,17 +169,7 @@ class MainPostScreen : AppCompatActivity() {
 
         val placesAdapter = PostsAdapter(this, data as ArrayList<post_data>)
         rv_post_list.adapter = placesAdapter
-        placesAdapter.setOnClickListener(object :
-            PostsAdapter.OnClickListener {
-            override fun onClick(position: Int, model: post_data) {
-
-            }
-        })
-
-
-
     }
-
     private fun showpd() {
         pd = Dialog(this)
         pd!!.setContentView(R.layout.dialog_custom_progress)
@@ -153,6 +179,13 @@ class MainPostScreen : AppCompatActivity() {
         if (pd != null) {
             pd!!.dismiss()
         }
+    }
+    fun resetview(){
+        et_newquestion.text.clear()
+        et_newquestion_subjectid.text.clear()
+        iv_newQuestion.setImageDrawable(null)
+        iv_newQuestion.visibility=View.GONE
+
     }
 
 }
